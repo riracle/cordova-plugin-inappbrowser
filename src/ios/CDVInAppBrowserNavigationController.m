@@ -30,17 +30,38 @@
 }
 
 - (void) viewDidLoad {
-
+ 
     CGRect statusBarFrame = [self invertFrameIfNeeded:[UIApplication sharedApplication].statusBarFrame];
-    statusBarFrame.size.height = STATUSBAR_HEIGHT;
-    // simplified from: http://stackoverflow.com/a/25669695/219684
 
-    UIToolbar* bgToolbar = [[UIToolbar alloc] initWithFrame:statusBarFrame];
+//don't hardcode the height
+//    statusBarFrame.size.height =  STATUSBAR_HEIGHT;
+    
+    // simplified from: http://stackoverflow.com/a/25669695/219684
+    bgToolbar = [[UIToolbar alloc] initWithFrame:statusBarFrame];
     bgToolbar.barStyle = UIBarStyleDefault;
     [bgToolbar setAutoresizingMask:UIViewAutoresizingFlexibleWidth];
     [self.view addSubview:bgToolbar];
-
+    
+    //set the statusbar height
+    [self fixStatusBar];
+    
     [super viewDidLoad];
+}
+
+- (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
+    [coordinator animateAlongsideTransition:nil completion:^(id<UIViewControllerTransitionCoordinatorContext> context) {
+        // fix height after orientation change
+         [self fixStatusBar];
+    }];
+}
+
+-(void)fixStatusBar {
+    CGRect statusBarFrame = [self invertFrameIfNeeded:[UIApplication sharedApplication].statusBarFrame];
+    if([UIApplication sharedApplication].isStatusBarHidden) {
+        statusBarFrame.size.height = 0;
+    }
+    
+    [bgToolbar setFrame:statusBarFrame];
 }
 
 - (CGRect) invertFrameIfNeeded:(CGRect)rect {

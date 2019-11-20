@@ -20,7 +20,9 @@
 #import <Cordova/CDVScreenOrientationDelegate.h>
 
 
-@interface CDVInAppBrowserNavigationController : UINavigationController
+@interface CDVInAppBrowserNavigationController : UINavigationController {
+    @private UIToolbar* bgToolbar;
+}
 
 @property (nonatomic, weak) id <CDVScreenOrientationDelegate> orientationDelegate;
 
