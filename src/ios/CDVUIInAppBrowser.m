@@ -20,6 +20,7 @@
 #import "CDVUIInAppBrowser.h"
 #import <Cordova/CDVPluginResult.h>
 #import <Cordova/CDVUserAgentUtil.h>
+#import <sys/sysctl.h>
 
 #define    kInAppBrowserTargetSelf @"_self"
 #define    kInAppBrowserTargetSystem @"_system"
@@ -640,18 +641,96 @@ static CDVUIInAppBrowser* instance = nil;
 }
 
 // Prevent crashes on closing windows
--(void)dealloc {
+- (void)dealloc {
    self.webView.delegate = nil;
+}
+
+- (BOOL)isIPhoneWithNoHomeButton {
+    size_t size;
+    sysctlbyname("hw.machine", NULL, &size, NULL, 0);
+    char *machine = malloc(size);
+    sysctlbyname("hw.machine", machine, &size, NULL, 0);
+#if TARGET_IPHONE_SIMULATOR
+    NSString *platformName = NSProcessInfo.processInfo.environment[@"SIMULATOR_MODEL_IDENTIFIER"];
+#else
+    NSString *platformName = [NSString stringWithCString:machine encoding:NSUTF8StringEncoding];
+#endif
+    free(machine);
+
+    NSDictionary *dict = @{
+        @"iPod5,1" : @"iPod Touch 5",
+        @"iPod7,1" : @"iPod Touch 6",
+        @"iPhone3,1" : @"iPhone 4",
+        @"iPhone3,2" : @"iPhone 4",
+        @"iPhone3,3" : @"iPhone 4",
+        @"iPhone4,1" : @"iPhone 4s",
+        @"iPhone5,1" : @"iPhone 5",
+        @"iPhone5,2" : @"iPhone 5",
+        @"iPhone5,3" : @"iPhone 5c",
+        @"iPhone5,4" : @"iPhone 5c",
+        @"iPhone6,1" : @"iPhone 5s",
+        @"iPhone6,2" : @"iPhone 5s",
+        @"iPhone7,2" : @"iPhone 6",
+        @"iPhone7,1" : @"iPhone 6 Plus",
+        @"iPhone8,2" : @"iPhone 6s",
+        @"iPhone8,1" : @"iPhone 6s Plus",
+        @"iPhone8,4" : @"iPhone SE",
+        @"iPhone9,1" : @"iPhone 7",
+        @"iPhone9,2" : @"iPhone 7 Plus",
+        @"iPhone10,1" : @"iPhone 8",
+        @"iPhone10,4" : @"iPhone 8",
+        @"iPhone10,2" : @"iPhone 8 Plus",
+        @"iPhone10,5" : @"iPhone 8 Plus",
+        @"iPad2,1" : @"iPad 2",
+        @"iPad2,2" : @"iPad 2",
+        @"iPad2,3" : @"iPad 2",
+        @"iPad2,4" : @"iPad 2",
+        @"iPad2,5" : @"iPad Mini",
+        @"iPad2,6" : @"iPad Mini",
+        @"iPad2,7" : @"iPad Mini",
+        @"iPad3,1" : @"iPad 3",
+        @"iPad3,2" : @"iPad 3",
+        @"iPad3,3" : @"iPad 3",
+        @"iPad3,4" : @"iPad 4",
+        @"iPad3,5" : @"iPad 4",
+        @"iPad3,6" : @"iPad 4",
+        @"iPad4,1" : @"iPad Air",
+        @"iPad4,2" : @"iPad Air",
+        @"iPad4,3" : @"iPad Air",
+        @"iPad4,4" : @"iPad Mini 2",
+        @"iPad4,5" : @"iPad Mini 2",
+        @"iPad4,6" : @"iPad Mini 2",
+        @"iPad4,7" : @"iPad Mini 3",
+        @"iPad4,8" : @"iPad Mini 3",
+        @"iPad4,9" : @"iPad Mini 3",
+        @"iPad5,1" : @"iPad Mini 4",
+        @"iPad5,2" : @"iPad Mini 4",
+        @"iPad5,3" : @"iPad Air 2",
+        @"iPad5,4" : @"iPad Air 2",
+        @"iPad6,3" : @"iPad Pro 97",
+        @"iPad6,4" : @"iPad Pro 97",
+        @"iPad6,7" : @"iPad Pro 129",
+        @"iPad6,8" : @"iPad Pro 129",
+    };
+    
+    if (dict[platformName]) {
+        return false;
+    }
+    return true;
 }
 
 - (void)createViews
 {
     // We create the views in code for primarily for ease of upgrades and not requiring an external .xib to be included
 
+    CGFloat spaceOfSafeArea = [self isIPhoneWithNoHomeButton] ? 20 : 0;
     CGRect webViewBounds = self.view.bounds;
     BOOL toolbarIsAtBottom = ![_browserOptions.toolbarposition isEqualToString:kInAppBrowserToolbarBarPositionTop];
     webViewBounds.size.height -= _browserOptions.location ? FOOTER_HEIGHT : TOOLBAR_HEIGHT;
+    webViewBounds.origin.y -= spaceOfSafeArea;
     self.webView = [[UIWebView alloc] initWithFrame:webViewBounds];
+    UIEdgeInsets newScrollViewInset = UIEdgeInsetsMake(self.webView.scrollView.contentInset.top, self.webView.scrollView.contentInset.left, self.webView.scrollView.contentInset.bottom + spaceOfSafeArea, self.webView.scrollView.contentInset.right);
+    self.webView.scrollView.contentInset = newScrollViewInset;
 
     self.webView.autoresizingMask = (UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight);
 
@@ -693,7 +772,7 @@ static CDVUIInAppBrowser* instance = nil;
     fixedSpaceButton.width = 20;
 
     float toolbarY = toolbarIsAtBottom ? self.view.bounds.size.height - TOOLBAR_HEIGHT : 0.0;
-    CGRect toolbarFrame = CGRectMake(0.0, toolbarY, self.view.bounds.size.width, TOOLBAR_HEIGHT);
+    CGRect toolbarFrame = CGRectMake(0.0, toolbarY - spaceOfSafeArea, self.view.bounds.size.width, TOOLBAR_HEIGHT);
 
     self.toolbar = [[UIToolbar alloc] initWithFrame:toolbarFrame];
     self.toolbar.alpha = 1.000;
@@ -1125,5 +1204,3 @@ static CDVUIInAppBrowser* instance = nil;
 }
 
 @end
-
-
